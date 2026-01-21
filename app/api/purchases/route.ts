@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../lib/prisma";
 import { getUserIdFromAccessToken } from "../../lib/auth";
 
+type PurchaseRow = {
+  id: string;
+  title: string;
+  price: number;
+  purchasedAt: Date;
+};
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const accessToken = authHeader?.replace("Bearer ", "");
@@ -17,7 +24,7 @@ export async function GET(request: Request) {
 
   try {
     const userId = await getUserIdFromAccessToken(accessToken);
-    const purchases = await prisma.purchase.findMany({
+    const purchases = (await prisma.purchase.findMany({
       where: { userId },
       orderBy: [{ purchasedAt: "desc" }, { createdAt: "desc" }],
       take: safeLimit,
@@ -27,14 +34,14 @@ export async function GET(request: Request) {
         price: true,
         purchasedAt: true,
       },
-    });
+    })) as PurchaseRow[];
 
-    return NextResponse.json({
-      purchases: purchases.map((purchase) => ({
-        ...purchase,
-        purchasedAt: purchase.purchasedAt.toISOString(),
-      })),
-    });
+    const response = purchases.map((purchase: PurchaseRow) => ({
+      ...purchase,
+      purchasedAt: purchase.purchasedAt.toISOString(),
+    }));
+
+    return NextResponse.json({ purchases: response });
   } catch (error) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
