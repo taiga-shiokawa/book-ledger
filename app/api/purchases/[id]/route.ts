@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { getUserIdFromAccessToken } from "../../../lib/auth";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const { id } = await params;
   const authHeader = request.headers.get("authorization");
   const accessToken = authHeader?.replace("Bearer ", "");
 
@@ -15,7 +16,7 @@ export async function GET(request: Request, { params }: Params) {
   try {
     const userId = await getUserIdFromAccessToken(accessToken);
     const purchase = await prisma.purchase.findFirst({
-      where: { id: params.id, userId },
+      where: { id, userId },
       select: {
         id: true,
         title: true,
