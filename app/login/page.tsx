@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +36,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/purchases");
+      if (mode === "login") {
+        router.push("/purchases");
+        return;
+      }
+
+      setShowSignupModal(true);
     });
   };
 
@@ -126,6 +132,29 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      {showSignupModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-xl">
+            <h2 className="text-lg font-semibold">
+              メールを送信しました
+            </h2>
+            <p className="mt-3 text-sm text-slate-300">
+              登録したメールアドレス宛に確認メールを送信しました。
+              メール内のリンクをクリックして、登録を完了してください。
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSignupModal(false)}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
