@@ -21,6 +21,7 @@ export async function GET(request: NextRequest, { params }: Params) {
         id: true,
         title: true,
         price: true,
+        tags: true,
         purchasedAt: true,
       },
     });

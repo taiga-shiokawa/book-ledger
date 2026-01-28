@@ -10,6 +10,7 @@ type Purchase = {
   id: string;
   title: string;
   price: number;
+  tags: string[];
   purchasedAt: string;
 };
 
@@ -138,6 +139,17 @@ export default function EditPurchasePage() {
               max={9999999}
               step={1}
               defaultValue={purchase.price}
+              className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-slate-500 focus:outline-none"
+            />
+          </label>
+
+          <label className="block text-sm">
+            タグ（任意・カンマ区切り）
+            <input
+              type="text"
+              name="tags"
+              defaultValue={purchase.tags.join(", ")}
+              placeholder="例: 新潮文庫100冊, 名作"
               className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-slate-500 focus:outline-none"
             />
           </label>

@@ -7,6 +7,8 @@ const TITLE_MIN = 1;
 const TITLE_MAX = 200;
 const PRICE_MIN = 0;
 const PRICE_MAX = 9_999_999;
+const TAG_MAX_LENGTH = 50;
+const TAG_MAX_COUNT = 20;
 
 function parsePrice(value: FormDataEntryValue | null) {
   const price = Number(value);
@@ -27,6 +29,25 @@ function parsePurchasedAt(value: FormDataEntryValue | null) {
   return date;
 }
 
+function parseTags(value: FormDataEntryValue | null) {
+  if (!value || typeof value !== "string") {
+    return [];
+  }
+  const rawTags = value
+    .split(/[,\u3001]/)
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+
+  const uniqueTags = Array.from(new Set(rawTags)).slice(0, TAG_MAX_COUNT);
+  for (const tag of uniqueTags) {
+    if (tag.length > TAG_MAX_LENGTH) {
+      throw new Error("タグは1つ50文字以内で入力してください。");
+    }
+  }
+
+  return uniqueTags;
+}
+
 async function getUserIdFromForm(formData: FormData) {
   const accessToken = formData.get("accessToken");
   if (!accessToken || typeof accessToken !== "string") {
@@ -40,6 +61,7 @@ export async function createPurchaseAction(formData: FormData) {
   const title = formData.get("title");
   const priceValue = formData.get("price");
   const purchasedAtValue = formData.get("purchasedAt");
+  const tagsValue = formData.get("tags");
 
   const trimmedTitle = typeof title === "string" ? title.trim() : "";
   if (trimmedTitle.length < TITLE_MIN || trimmedTitle.length > TITLE_MAX) {
@@ -56,11 +78,14 @@ export async function createPurchaseAction(formData: FormData) {
     throw new Error("Purchased date is invalid.");
   }
 
+  const tags = parseTags(tagsValue);
+
   const created = await prisma.purchase.create({
     data: {
       userId,
       title: trimmedTitle,
       price,
+      tags,
       purchasedAt,
     },
   });
@@ -74,6 +99,7 @@ export async function updatePurchaseAction(formData: FormData) {
   const title = formData.get("title");
   const priceValue = formData.get("price");
   const purchasedAtValue = formData.get("purchasedAt");
+  const tagsValue = formData.get("tags");
 
   if (!id || typeof id !== "string") {
     throw new Error("Missing purchase id.");
@@ -94,11 +120,14 @@ export async function updatePurchaseAction(formData: FormData) {
     throw new Error("Purchased date is invalid.");
   }
 
+  const tags = parseTags(tagsValue);
+
   const result = await prisma.purchase.updateMany({
     where: { id, userId },
     data: {
       title: trimmedTitle,
       price,
+      tags,
       purchasedAt,
     },
   });

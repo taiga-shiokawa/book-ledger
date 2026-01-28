@@ -19,6 +19,7 @@ model Purchase {
   userId      String   @db.Uuid
   title       String
   price       Int
+  tags        String[] @default([])
   purchasedAt DateTime @db.Timestamptz(6)
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)

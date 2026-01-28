@@ -6,6 +6,7 @@ type PurchaseRow = {
   id: string;
   title: string;
   price: number;
+  tags: string[];
   purchasedAt: Date;
 };
 
@@ -14,9 +15,11 @@ export async function GET(request: Request) {
   const accessToken = authHeader?.replace("Bearer ", "");
   const { searchParams } = new URL(request.url);
   const limitParam = searchParams.get("limit");
+  const tagParam = searchParams.get("tag");
   const limit = limitParam ? Number(limitParam) : null;
   const safeLimit =
     Number.isInteger(limit) && limit && limit > 0 ? Math.min(limit, 100) : 50;
+  const trimmedTag = tagParam?.trim();
 
   if (!accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,13 +28,17 @@ export async function GET(request: Request) {
   try {
     const userId = await getUserIdFromAccessToken(accessToken);
     const purchases = (await prisma.purchase.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(trimmedTag ? { tags: { has: trimmedTag } } : {}),
+      },
       orderBy: [{ purchasedAt: "desc" }, { createdAt: "desc" }],
       take: safeLimit,
       select: {
         id: true,
         title: true,
         price: true,
+        tags: true,
         purchasedAt: true,
       },
     })) as PurchaseRow[];

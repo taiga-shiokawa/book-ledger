@@ -54,7 +54,11 @@ export async function GET(request: Request) {
     const monthRange = getMonthRange(monthYear, monthValue);
     const yearRange = getYearRange(yearValue);
 
-    const [monthSum, yearSum] = await Promise.all([
+    const [totalSum, monthSum, yearSum] = await Promise.all([
+      prisma.purchase.aggregate({
+        where: { userId },
+        _sum: { price: true },
+      }),
       prisma.purchase.aggregate({
         where: {
           userId,
@@ -78,6 +82,7 @@ export async function GET(request: Request) {
     ]);
 
     return NextResponse.json({
+      total: totalSum._sum.price ?? 0,
       monthTotal: monthSum._sum.price ?? 0,
       yearTotal: yearSum._sum.price ?? 0,
       month: `${monthYear}-${String(monthValue).padStart(2, "0")}`,

@@ -16,11 +16,13 @@ export default function PurchasesPage() {
       id: string;
       title: string;
       price: number;
+      tags: string[];
       purchasedAt: string;
     }>
   >([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [tagFilter, setTagFilter] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -54,7 +56,14 @@ export default function PurchasesPage() {
 
     const loadPurchases = async () => {
       setError(null);
-      const response = await fetch("/api/purchases", {
+      const params = new URLSearchParams();
+      if (tagFilter.trim()) {
+        params.set("tag", tagFilter.trim());
+      }
+      const url = params.toString()
+        ? `/api/purchases?${params.toString()}`
+        : "/api/purchases";
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -70,6 +79,7 @@ export default function PurchasesPage() {
           id: string;
           title: string;
           price: number;
+          tags: string[];
           purchasedAt: string;
         }>;
       };
@@ -78,7 +88,7 @@ export default function PurchasesPage() {
     };
 
     loadPurchases();
-  }, [accessToken]);
+  }, [accessToken, tagFilter]);
 
   const handleDelete = (id: string) => {
     if (!accessToken) {
@@ -129,6 +139,26 @@ export default function PurchasesPage() {
             </p>
           ) : null}
 
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col text-xs text-slate-300">
+              タグで絞り込み
+              <input
+                type="text"
+                value={tagFilter}
+                onChange={(event) => setTagFilter(event.target.value)}
+                placeholder="例: 新潮文庫100冊"
+                className="mt-2 w-64 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-slate-500 focus:outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setTagFilter("")}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500"
+            >
+              クリア
+            </button>
+          </div>
+
           {purchases.length === 0 ? (
             <p className="text-sm text-slate-200">購入履歴がありません。</p>
           ) : (
@@ -138,6 +168,7 @@ export default function PurchasesPage() {
                   <tr>
                     <th className="px-4 py-3 text-left">タイトル</th>
                     <th className="px-4 py-3 text-right">価格</th>
+                    <th className="px-4 py-3 text-left">タグ</th>
                     <th className="px-4 py-3 text-left">購入日</th>
                     <th className="px-4 py-3 text-right">操作</th>
                   </tr>
@@ -151,6 +182,11 @@ export default function PurchasesPage() {
                       <td className="px-4 py-3">{purchase.title}</td>
                       <td className="px-4 py-3 text-right">
                         {purchase.price.toLocaleString("ja-JP")}円
+                      </td>
+                      <td className="px-4 py-3">
+                        {purchase.tags.length > 0
+                          ? purchase.tags.join(", ")
+                          : "-"}
                       </td>
                       <td className="px-4 py-3">
                         {new Date(purchase.purchasedAt).toLocaleDateString(
