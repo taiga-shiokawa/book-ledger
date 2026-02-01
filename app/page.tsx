@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "./lib/supabase";
 import { AppHeader } from "./components/app-header";
 
 type Summary = {
   total: number;
+  totalCount: number;
   monthTotal: number;
+  monthCount: number;
   yearTotal: number;
+  yearCount: number;
   month: string;
   year: number;
 };
@@ -28,7 +31,25 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(false);
   const [limit, setLimit] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  );
   const [error, setError] = useState<string | null>(null);
+
+  const monthOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i += 1) {
+      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      date.setUTCMonth(date.getUTCMonth() - i);
+      const value = date.toISOString().slice(0, 7);
+      const label = `${date.getUTCFullYear()}年${String(
+        date.getUTCMonth() + 1
+      ).padStart(2, "0")}月`;
+      options.push({ value, label });
+    }
+    return options;
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -59,7 +80,15 @@ export default function Home() {
 
     const loadSummary = async () => {
       setError(null);
-      const summaryRes = await fetch("/api/summary", {
+      const params = new URLSearchParams();
+      if (selectedMonth) {
+        params.set("month", selectedMonth);
+        params.set("year", selectedMonth.slice(0, 4));
+      }
+      const summaryUrl = params.toString()
+        ? `/api/summary?${params.toString()}`
+        : "/api/summary";
+      const summaryRes = await fetch(summaryUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
@@ -73,7 +102,7 @@ export default function Home() {
     };
 
     loadSummary();
-  }, [accessToken]);
+  }, [accessToken, selectedMonth]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -122,13 +151,31 @@ export default function Home() {
         ) : null}
 
         <section className="grid gap-4 md:grid-cols-3">
+          <div className="md:col-span-3">
+            <label className="flex flex-col text-xs text-slate-300">
+              集計対象の月
+              <select
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+                className="mt-2 w-56 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-slate-500 focus:outline-none"
+              >
+                {monthOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-6">
             <p className="text-sm text-slate-400">トータル</p>
             <p className="mt-3 text-3xl font-semibold">
               {summary ? summary.total.toLocaleString("ja-JP") : "--"}円
             </p>
             <p className="mt-2 text-xs text-slate-500">
-              {summary ? "全期間" : "読み込み中..."}
+              {summary
+                ? `全期間・${summary.totalCount.toLocaleString("ja-JP")}冊`
+                : "読み込み中..."}
             </p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-6">
@@ -137,7 +184,11 @@ export default function Home() {
               {summary ? summary.monthTotal.toLocaleString("ja-JP") : "--"}円
             </p>
             <p className="mt-2 text-xs text-slate-500">
-              {summary ? `${summary.month} 集計` : "読み込み中..."}
+              {summary
+                ? `${summary.month} 集計・${summary.monthCount.toLocaleString(
+                    "ja-JP"
+                  )}冊`
+                : "読み込み中..."}
             </p>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-6">
@@ -146,7 +197,11 @@ export default function Home() {
               {summary ? summary.yearTotal.toLocaleString("ja-JP") : "--"}円
             </p>
             <p className="mt-2 text-xs text-slate-500">
-              {summary ? `${summary.year} 年集計` : "読み込み中..."}
+              {summary
+                ? `${summary.year} 年集計・${summary.yearCount.toLocaleString(
+                    "ja-JP"
+                  )}冊`
+                : "読み込み中..."}
             </p>
           </div>
         </section>
